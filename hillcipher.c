@@ -1,94 +1,112 @@
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
+
+int modInverse(int n)
+{
+    int i;
+
+    for(i = 1; i < 26; i++)
+    {
+        if((n * i) % 26 == 1)
+            return i;
+    }
+
+    return -1;
+}
+
+int mod(int n)
+{
+    n = n % 26;
+
+    if(n < 0)
+        n += 26;
+
+    return n;
+}
 
 int main()
 {
-    char str[100], temp[100];
+    char text[100], clean[100];
     char encrypted[100], decrypted[100];
 
-
-    int key[2][2] = {{5, 8}, {17, 3}};
-
-  
-    int inv[2][2] = {{9, 2}, {1, 15}};
-
-    int i, n = 0, k = 0;
+    int key[2][2], inverse[2][2];
+    int i, n = 0;
+    int det, invDet;
     int a, b;
 
-    printf("Enter the string to be encrypted:\n");
-    fgets(str, sizeof(str), stdin);
+    printf("Enter message: ");
+    scanf(" %[^\n]", text);
 
-    str[strcspn(str, "\n")] = '\0';
+    printf("Enter 2x2 key matrix:\n");
 
-    for(i = 0; str[i] != '\0'; i++)
+    scanf("%d %d", &key[0][0], &key[0][1]);
+    scanf("%d %d", &key[1][0], &key[1][1]);
+
+    for(i = 0; text[i] != '\0'; i++)
     {
-        if(str[i] != ' ' && !isalpha((unsigned char)str[i]))
+        if(isalpha(text[i]))
         {
-            printf("Invalid character in the string.\n");
-            printf("Please enter only alphabets and spaces.\n");
-            return 0;
-        }
-    }
-
-    for(i = 0; str[i] != '\0'; i++)
-    {
-        if(str[i] != ' ')
-        {
-            temp[n] = toupper((unsigned char)str[i]);
+            clean[n] = toupper(text[i]);
             n++;
         }
     }
 
-    if(n == 0)
-    {
-        printf("No alphabets entered.\n");
-        return 0;
-    }
-
     if(n % 2 != 0)
     {
-        temp[n] = 'X';
+        clean[n] = 'X';
         n++;
     }
 
-    temp[n] = '\0';
+    clean[n] = '\0';
 
-    k = 0;
+    det = mod(key[0][0] * key[1][1] -
+              key[0][1] * key[1][0]);
+
+    invDet = modInverse(det);
+
+    if(invDet == -1)
+    {
+        printf("Invalid key matrix\n");
+        return 0;
+    }
+
+    inverse[0][0] = mod(key[1][1] * invDet);
+    inverse[0][1] = mod(-key[0][1] * invDet);
+    inverse[1][0] = mod(-key[1][0] * invDet);
+    inverse[1][1] = mod(key[0][0] * invDet);
 
     for(i = 0; i < n; i += 2)
     {
-        a = temp[i] - 'A';
-        b = temp[i + 1] - 'A';
+        a = clean[i] - 'A';
+        b = clean[i + 1] - 'A';
 
-        encrypted[k++] =
-            ((key[0][0] * a + key[0][1] * b) % 26) + 'A';
+        encrypted[i] =
+            mod(key[0][0] * a + key[0][1] * b) + 'A';
 
-        encrypted[k++] =
-            ((key[1][0] * a + key[1][1] * b) % 26) + 'A';
+        encrypted[i + 1] =
+            mod(key[1][0] * a + key[1][1] * b) + 'A';
     }
 
-    encrypted[k] = '\0';
-
-    printf("Encrypted string: %s\n", encrypted);
-
-    k = 0;
+    encrypted[n] = '\0';
 
     for(i = 0; i < n; i += 2)
     {
         a = encrypted[i] - 'A';
         b = encrypted[i + 1] - 'A';
 
-        decrypted[k++] =
-            (((inv[0][0] * a + inv[0][1] * b) % 26) + 26) % 26 + 'A';
+        decrypted[i] =
+            mod(inverse[0][0] * a +
+                inverse[0][1] * b) + 'A';
 
-        decrypted[k++] =
-            (((inv[1][0] * a + inv[1][1] * b) % 26) + 26) % 26 + 'A';
+        decrypted[i + 1] =
+            mod(inverse[1][0] * a +
+                inverse[1][1] * b) + 'A';
     }
 
-    decrypted[k] = '\0';
+    decrypted[n] = '\0';
 
-    printf("Decrypted string: %s\n", decrypted);
+    printf("Encrypted: %s\n", encrypted);
+    printf("Decrypted: %s\n", decrypted);
 
     return 0;
 }
