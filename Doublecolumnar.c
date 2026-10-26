@@ -2,7 +2,7 @@
 #include <string.h>
 #include <ctype.h>
 
-void findOrder(char key[], int order[], int n)
+void getOrder(char key[], int order[], int n)
 {
     int i, j, temp;
 
@@ -13,8 +13,7 @@ void findOrder(char key[], int order[], int n)
     {
         for(j = i + 1; j < n; j++)
         {
-            if(key[order[i]] > key[order[j]] ||
-              (key[order[i]] == key[order[j]] && order[i] > order[j]))
+            if(key[order[i]] > key[order[j]])
             {
                 temp = order[i];
                 order[i] = order[j];
@@ -26,72 +25,89 @@ void findOrder(char key[], int order[], int n)
 
 void encrypt(char text[], char key[], char result[])
 {
-    char matrix[100][20];
+    char matrix[100][20] = {0};
     int order[20];
-    int rows, cols;
-    int i, j, p = 0;
+    int len = strlen(text);
+    int cols = strlen(key);
+    int rows = (len + cols - 1) / cols;
+    int i, j, k = 0;
 
-    cols = strlen(key);
-    rows = (strlen(text) + cols - 1) / cols;
-
-    for(i = 0; i < rows; i++)
-        for(j = 0; j < cols; j++)
-            matrix[i][j] = 'X';
-
-    for(i = 0; text[i] != '\0'; i++)
+    for(i = 0; i < len; i++)
         matrix[i / cols][i % cols] = text[i];
 
-    findOrder(key, order, cols);
+    getOrder(key, order, cols);
 
     for(j = 0; j < cols; j++)
     {
         for(i = 0; i < rows; i++)
-            result[p++] = matrix[i][order[j]];
+        {
+            if(matrix[i][order[j]] != '\0')
+            {
+                result[k] = matrix[i][order[j]];
+                k++;
+            }
+        }
     }
 
-    result[p] = '\0';
+    result[k] = '\0';
 }
 
 void decrypt(char text[], char key[], char result[])
 {
-    char matrix[100][20];
+    char matrix[100][20] = {0};
     int order[20];
-    int rows, cols;
-    int i, j, p = 0;
+    int len = strlen(text);
+    int cols = strlen(key);
+    int rows = (len + cols - 1) / cols;
+    int base = len / cols;
+    int extra = len % cols;
+    int i, j, k = 0;
+    int columnLength;
 
-    cols = strlen(key);
-    rows = strlen(text) / cols;
-
-    findOrder(key, order, cols);
+    getOrder(key, order, cols);
 
     for(j = 0; j < cols; j++)
     {
-        for(i = 0; i < rows; i++)
-            matrix[i][order[j]] = text[p++];
+        columnLength = base;
+
+        if(order[j] < extra)
+            columnLength++;
+
+        for(i = 0; i < columnLength; i++)
+        {
+            matrix[i][order[j]] = text[k];
+            k++;
+        }
     }
 
-    p = 0;
+    k = 0;
 
     for(i = 0; i < rows; i++)
     {
         for(j = 0; j < cols; j++)
-            result[p++] = matrix[i][j];
+        {
+            if(matrix[i][j] != '\0')
+            {
+                result[k] = matrix[i][j];
+                k++;
+            }
+        }
     }
 
-    result[p] = '\0';
+    result[k] = '\0';
 }
 
 int main()
 {
-    char text[200];
+    char text[100];
     char key1[20], key2[20];
-    char first[300], encrypted[300];
-    char second[300], decrypted[300];
+    char first[100], encrypted[100];
+    char second[100], decrypted[100];
 
     int i, j = 0;
 
     printf("Enter message: ");
-    scanf(" %[^\n]", text);
+    scanf(" %99[^\n]", text);
 
     printf("Enter first key: ");
     scanf("%19s", key1);
@@ -99,13 +115,28 @@ int main()
     printf("Enter second key: ");
     scanf("%19s", key2);
 
-    if(strlen(key1) == 0 || strlen(key2) == 0)
+    for(i = 0; key1[i] != '\0'; i++)
     {
-        printf("Invalid key\n");
-        return 0;
+        if(!isalpha(key1[i]))
+        {
+            printf("Invalid key\n");
+            return 0;
+        }
+
+        key1[i] = toupper(key1[i]);
     }
 
-    /* Convert message to uppercase and remove spaces */
+    for(i = 0; key2[i] != '\0'; i++)
+    {
+        if(!isalpha(key2[i]))
+        {
+            printf("Invalid key\n");
+            return 0;
+        }
+
+        key2[i] = toupper(key2[i]);
+    }
+
     for(i = 0; text[i] != '\0'; i++)
     {
         if(isalpha(text[i]))
@@ -117,22 +148,17 @@ int main()
 
     text[j] = '\0';
 
-    /* Convert keys to uppercase */
-    for(i = 0; key1[i] != '\0'; i++)
-        key1[i] = toupper(key1[i]);
+    if(strlen(key1) > 20 || strlen(key2) > 20)
+    {
+        printf("Key too long\n");
+        return 0;
+    }
 
-    for(i = 0; key2[i] != '\0'; i++)
-        key2[i] = toupper(key2[i]);
-
-    /* First transposition */
     encrypt(text, key1, first);
-
-    /* Second transposition */
     encrypt(first, key2, encrypted);
 
-    printf("Encrypted: %s\n", encrypted);
+    printf("\nEncrypted: %s\n", encrypted);
 
-    /* Decryption in reverse order */
     decrypt(encrypted, key2, second);
     decrypt(second, key1, decrypted);
 
